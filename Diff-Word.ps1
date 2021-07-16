@@ -1,3 +1,13 @@
+<####################################################################
+
+    .SYNOPSIS
+        Run Ms-Word as a diff tool
+
+    .NOTES
+        MS-Word must be installe
+
+####################################################################>
+
 param(
     [ValidateNotNullOrEmpty()]
     [Parameter(Mandatory=$true)]

@@ -1,4 +1,6 @@
 ﻿#.\Merge-Word.ps1 "C:\Temp\PruebasGIT\Test1\test.docx" "C:\Temp\PruebasGIT\Test2\test.docx"
+# $d1 = $word.Documents.Open("D:\Documentos\dev\ExtDiff\testCases\d1.docx")
+# $d2 = $word.Documents.Open("D:\Documentos\dev\ExtDiff\testCases\d2.docx")
 param(
     [string] $localFileName,
     [string] $remoteFileName,
@@ -29,8 +31,8 @@ try {
     $word = New-Object -ComObject Word.Application
 
     # Keep MS-word invisible to prevent user from tampering while running this script
-    $word.Visible = $true
-    #$word.Visible = $false
+    #$word.Visible = $true
+    $word.Visible = $false
 
     # Open documents
     $docLocal = open-word-doc $word $localFileName
