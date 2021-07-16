@@ -1,7 +1,7 @@
 param(
+    [ValidateNotNullOrEmpty()]
     [Parameter(Mandatory=$true)]
     [string] $BaseFileName,
-    [Parameter(Mandatory=$true)]
     [string] $ChangedFileName
 )
 
@@ -18,27 +18,49 @@ function resolve($relativePath) {
 
 # Script body
 try {
-    $BaseFileName = resolve $BaseFileName
-    $ChangedFileName = resolve $ChangedFileName
+    # if MS Word is not installed, fail as soon as possible
+    $word = New-Object -ComObject Word.Application
 
+    # Keep MS-word invisible to prevent user from tampering while running this script
+    $word.Visible = $false
+
+    $BaseFileName = resolve $BaseFileName
     # Remove the readonly attribute because Word is unable to compare readonly
     # files:
     $baseFile = Get-ChildItem $BaseFileName
     if ($baseFile.IsReadOnly) {
         $baseFile.IsReadOnly = $false
     }
+    # Open first document
+    $docBase = $word.Documents.Open($BaseFileName, $false, $false)
 
-    $word = New-Object -ComObject Word.Application
-    $word.Visible = $false
-    $document = $word.Documents.Open($BaseFileName, $false, $false)
-    $document.Compare($ChangedFileName, [ref]"Comparison", [ref]$wdCompareTargetNew, [ref]$true, [ref]$true)
+    # Open second document
+    # NOTE: if not given, use an empty document
+    if ($ChangedFileName) {
+        $ChangedFileName = resolve $ChangedFileName
+        $docChanged = $word.Documents.Open($ChangedFileName, $false, $false)
+    } else {
+        $docChanged = $word.Documents.Add()
+    }
 
-    $word.ActiveDocument.Saved = 1
+    # Open comparison window
+    $docComparison = $word.Application.CompareDocuments($docChanged,$docBase,$wdCompareTargetNew,1)
+    $docComparison.Saved  = $true
+    
+    #close single documents
+    $docBase.Close([ref]$wdDoNotSaveChanges)
+    $docChanged.Close([ref]$wdDoNotSaveChanges)
 
-    # Now close the document so only compare results window persists:
-    $document.Close([ref]$wdDoNotSaveChanges)
+    # show
     $word.Visible = $true
+    exit 0
 } catch {
+    if ($word) {
+        # avoid hidden MS-word instances after failing
+        $word.Quit([ref]$false)
+    }
+    # show exception text in a message box
     Add-Type -AssemblyName System.Windows.Forms
-    [System.Windows.Forms.MessageBox]::Show($_.Exception)
+    [System.Windows.Forms.MessageBox]::Show($_.Exception,"FAILURE")
+    exit 1
 }
